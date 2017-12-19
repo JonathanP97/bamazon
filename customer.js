@@ -10,31 +10,28 @@ var con = mysql.createConnection({
 	database: 'bamazon'
 });
 
-display(); 
-function display() {
+con.connect(function(err) {
+	if(err) throw err;
 
-	con.connect(function(err) {
+	console.log("connected as " + con.threadId);
+	display();
+});
+
+// display(); 
+function display() {
+	con.query("SELECT * FROM products", function(err, res) {
 		if(err) throw err;
 
-		con.query("SELECT * FROM products", function(err, res) {
-			if(err) throw err;
-
-			console.log("id  Product   department   price   current_stock");
-			for(var i=0; i<res.length; i++) {
-				console.log(res[i].item_id + "  " + res[i].product_name + "  " + res[i].department_name + 
-						"  " + res[i].price + "  " + res[i].stock_quantity);
-			}
-			 
-		});
-		getInput();
+		console.log("id  Product   department   price   current_stock");
+		for(var i=0; i<res.length; i++) {
+			console.log(res[i].item_id + "  " + res[i].product_name + "  " + res[i].department_name + 
+					"  " + res[i].price + "  " + res[i].stock_quantity);
+		}
+		getInput(); 
 	});
-
 }
 
 function getInput() {
-  
-  con.connect( function(err, input) {
-  	var quantity;
 	inquirer.prompt([
 	  {
 	  	message: 'Enter the id of item you would like to purchase',
@@ -44,56 +41,36 @@ function getInput() {
 	  	message: 'Enter quantity you would like to purchase',
 	  	name: 'amount'
 	  }
-	  ]).then( 
-	  		function(input) {
-				con.query("SELECT stock_quantity FROM products WHERE item_id=?", [input.amount], function(err, res) {
-						console.log(input.amount);
-						if(err) throw err;
-						quantity = res[0].stock_quantity;
-						return quantity;	
-				});
+	]).then( function(input) {
+		var id = input.item;
+	  	var userAmount = input.amount;
+	  	con.query("SELECT * FROM products WHERE item_id=?",[id], function(err, data) {
+	  		console.log("\n");
+			if(err) throw err;
+
+			console.log(data);
+			if(data.length !== 0) {
+				var currentStock = data[0].stock_quantity;
+		  	  	var cost = data[0].price;
+		  	  	transaction(id, cost, currentStock, userAmount);	
 			}
-	   ).then(
-			function(quantity) {
-				if(input.amount < quantity) {
+			
+	  	}); 
+	});
+};
 
-					con.query("UPDATE products SET stock_quantity=? WHERE id=", [leftover , input.item], function(err, res) {
-						if(err) throw err;
-						console.log("worked");
-
-						con.end();
-					});
-
-				}
-
-			}
-	   );
-
-		// con.query("SELECT stock_quantity FROM products WHERE item_id=?", [input.amount] ).then(
-		// 	function(err, res) {
-		// 		console.log(input.amount);
-		// 		if(err) throw err;
-		// 		quantity = res[0].stock_quantity;
-		// 		return quantity;	
-		// 	}
-
-
-
-		// if(input.amount < quantity) {
-
-		// 	con.query("UPDATE products SET stock_quantity=? WHERE id=", [leftover , input.item], function(err, res) {
-		// 		if(err) throw err;
-		// 		console.log("worked");
-
-		// 		con.end();
-		// 	});
-
-		// }
+function transaction(id, cost, stock, buyAmount) {
+	if(buyAmount < stock) {
 		
-		
-	  
+		var remainingStock = stock - buyAmount;
+		var total = buyAmount * cost;
+		console.log("\nThe total cost of your transaction was $" + total);
+		console.log("Amount: " + buyAmount);
+		con.query("UPDATE products SET stock_quantity=? WHERE item_id=?", [remainingStock , id], function(err, res) {
+			if(err) throw err;
+			console.log("Your transaction is complete");
 
-	
-	
-  });
-}
+			con.end();
+		});
+	}
+};
