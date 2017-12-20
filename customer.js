@@ -9,7 +9,7 @@ var con = mysql.createConnection({
 	password: 'password',
 	database: 'bamazon'
 });
-
+  
 con.connect(function(err) {
 	if(err) throw err;
 
