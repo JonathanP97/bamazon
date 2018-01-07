@@ -35,23 +35,27 @@ const con = mysql.createConnection({
 
 
  
-
 con.connect( function(err) {
 	if(err) throw err;
 	console.log("connected to bamazon database");
 });
 
+// Displays menu descriptiion
+function aboutDisplay() {
+	console.log("\nI am a basic node & mysql app that connects to Bamazon's database to provide various functions");
+	console.log("Admin - Controls for admin");
+	console.log("Buy - Purchase items");
+	console.log("Exit - Exit the app");
+	console.log("Sell - Post your own items for sale");
+	console.log("View - Displays all items currently in stock");
+	prompts.onNext(makePrompt('\n| About | Admin | Buy | Exit | Sell | View | ' + ` prompt #${i}`));
+}
 
+// Displays items in stock
 function viewItems() {
 	con.query("SELECT * FROM products", function(err, res) {
 		if(err) throw err;
-		// console.log(res);
 
-		// console.log("id  Product   department   price   current_stock");
-		// for(var i=0; i<res.length; i++) {
-		// 	console.log(res[i].item_id + "  " + res[i].product_name + "  " + res[i].department_name + 
-		// 			"  " + res[i].price + "  " + res[i].stock_quantity);
-		// }
 		var data = res;
 		var t = new Table;
 
@@ -62,10 +66,9 @@ function viewItems() {
 			t.cell('Price', product.price);
 			t.cell('In-Stock', product.stock_quantity);
 			t.newRow();
-		})
+		});
 
 		console.log(t.toString());
-
 		prompts.onNext(makePrompt('\n| About | Admin | Buy | Exit | Sell | View | ' + ` prompt #${i}`));
 	});
 }
@@ -76,6 +79,29 @@ function adminPrompt() {
 		name: 'password',
 		message: 'Enter admin password\n\n'
 	};
+}
+
+function sellerPrompt(index) {
+	// switch(index) {
+	// 	case 2:
+	// 	  return {
+	// 	 	message: '\nEnter name of item you would like to sell',
+	// 		name: 'item'
+	// 	  }
+	// 	  break;
+	// 	case 3:
+	// 	  return {
+	// 		message: 'Enter department for item (clothing, electronics)',
+	// 		name: 'department'
+	// 	  }
+	// 	  break;
+	// }
+	i += 1;
+		return {
+			type: 'input',
+		 	message: 'Enter name of item you would like to sell',
+			name: 'item'
+		}
 }
 
 function makePrompt(msg) {
@@ -92,7 +118,7 @@ let name = 'bob';
 
 inquirer.prompt(prompts).ui.process.subscribe(({ answer }) => {
   
-  if (answer !== '') {
+  if (answer !== '' && i >= 1) {
 
   	if(name === 'bob') {
   		name = answer;
@@ -100,6 +126,9 @@ inquirer.prompt(prompts).ui.process.subscribe(({ answer }) => {
 	}
 
 	switch( answer ) {
+		case 'about':
+		  aboutDisplay();
+		  break;
 	  	case 'admin':
 	  	  prompts.onNext(adminPrompt());
 	  	  break;
@@ -108,10 +137,23 @@ inquirer.prompt(prompts).ui.process.subscribe(({ answer }) => {
 	  	  break;
 	  	case 'exit':
 	  	  end();
+	  	case 'sell':
+	  	  prompts.onNext(sellerPrompt(i));
+	  	  break;
 	  	default: 
 		  prompts.onNext(makePrompt('\n| About | Admin | Buy | Exit | Sell | View | ' + `prompt #${i}`));
 	  	  break;
 	};
+
+	// i becomes 2 to reroute to handle selling an item
+  	if (i >= 2) {
+  		console.log(answer);
+  		if(i === 2) {
+  		  i = 3;
+  		  rompts.onNext(sellerPrompt(i));
+  		}
+  		
+  	}
   } else {
     prompts.onCompleted();
   }
