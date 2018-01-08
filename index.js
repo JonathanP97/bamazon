@@ -14,27 +14,9 @@ const con = mysql.createConnection({
 	database: 'bamazon'
 });
 
-// const choicesArray = ['View items up for sale', 'Purchase Item', 
-// 					'Sell Item', 'Admin Login', 'End'];
+let i = 1;
+let name = 'bob';
 
-// const questions = [
-//   {
-//  	when: function() {
-//   		if(name !== undefined) return name;
-//   	},
-//  	type: 'input',
-//  	name: 'name',
-//  	message: 'What is your name?',
-//   } , {	
-// 	type: 'list',
-//  	name: 'command',
-//  	message: 'Select your option',	
-//  	choices: choicesArray
-//   }
-// ];
-
-
- 
 con.connect( function(err) {
 	if(err) throw err;
 	console.log("connected to bamazon database");
@@ -81,27 +63,46 @@ function adminPrompt() {
 	};
 }
 
-function sellerPrompt(index) {
-	// switch(index) {
-	// 	case 2:
-	// 	  return {
-	// 	 	message: '\nEnter name of item you would like to sell',
-	// 		name: 'item'
-	// 	  }
-	// 	  break;
-	// 	case 3:
-	// 	  return {
-	// 		message: 'Enter department for item (clothing, electronics)',
-	// 		name: 'department'
-	// 	  }
-	// 	  break;
-	// }
-	i += 1;
-		return {
+function buyPrompt() {
+
+}
+
+// Prompts user to input data for item
+// Adds item to sql DB
+function sellerPrompt() {
+	inquirer.prompt([
+		{
 			type: 'input',
-		 	message: 'Enter name of item you would like to sell',
+			message: 'Enter name of item you would like to sell',
 			name: 'item'
+		},
+		{
+			type: 'input',
+			message: 'Enter department for item (clothing, electronics)',
+			name: 'department'
+		},
+		{
+			type: 'input',
+			message: 'Enter price of item',
+			name: 'price'
+		},
+		{
+			type: 'input',
+			message: 'Enter quantity to sell',
+			name: 'quant'
 		}
+	]).then(input => {
+		var price = Number(input.price);
+		var quantity = Number(input.quant);
+		console.log(input);
+		con.query("INSERT INTO products(product_name, department_name, price, stock_quantity)" +
+			" VALUES(?,?,?,?)", [input.item, input.department, price, quantity], (err, data) => {
+			if(err) throw err;
+			console.log("Thank you\nYour product is now available to purchase\nCLosing app now...");
+			con.end(); 
+		});
+		
+	});
 }
 
 function makePrompt(msg) {
@@ -112,12 +113,8 @@ function makePrompt(msg) {
   };
 }
 
-
-let i = 1;
-let name = 'bob';
-
 inquirer.prompt(prompts).ui.process.subscribe(({ answer }) => {
-  
+  console.log('route');
   if (answer !== '' && i >= 1) {
 
   	if(name === 'bob') {
@@ -132,28 +129,21 @@ inquirer.prompt(prompts).ui.process.subscribe(({ answer }) => {
 	  	case 'admin':
 	  	  prompts.onNext(adminPrompt());
 	  	  break;
+	  	case 'buy':
+	  	  buyPrompt();
+	  	  break;
 	  	case 'view':
 	  	  viewItems();
 	  	  break;
 	  	case 'exit':
 	  	  end();
 	  	case 'sell':
-	  	  prompts.onNext(sellerPrompt(i));
+	  	  sellerPrompt();
 	  	  break;
 	  	default: 
-		  prompts.onNext(makePrompt('\n| About | Admin | Buy | Exit | Sell | View | ' + `prompt #${i}`));
+		  prompts.onNext(makePrompt('| About | Admin | Buy | Exit | Sell | View | ' + `prompt #${i}\n`));
 	  	  break;
 	};
-
-	// i becomes 2 to reroute to handle selling an item
-  	if (i >= 2) {
-  		console.log(answer);
-  		if(i === 2) {
-  		  i = 3;
-  		  rompts.onNext(sellerPrompt(i));
-  		}
-  		
-  	}
   } else {
     prompts.onCompleted();
   }
