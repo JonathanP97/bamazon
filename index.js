@@ -30,11 +30,11 @@ function aboutDisplay() {
 	console.log("Exit - Exit the app");
 	console.log("Sell - Post your own items for sale");
 	console.log("View - Displays all items currently in stock");
-	prompts.onNext(makePrompt('\n| About | Admin | Buy | Exit | Sell | View | ' + ` prompt #${i}`));
+	prompts.onNext(makePrompt('| About | Admin | Buy | Exit | Sell | View | ' + ` `));
 }
 
 // Displays items in stock
-function viewItems() {
+function viewItems(flag, callback) {
 	con.query("SELECT * FROM products", function(err, res) {
 		if(err) throw err;
 
@@ -50,8 +50,9 @@ function viewItems() {
 			t.newRow();
 		});
 
-		console.log(t.toString());
-		prompts.onNext(makePrompt('\n| About | Admin | Buy | Exit | Sell | View | ' + ` prompt #${i}`));
+		callback(t.toString());
+		console.log('\n');
+		if(flag) prompts.onNext(makePrompt('| About | Admin | Buy | Exit | Sell | View | ' + ` `));
 	});
 }
 
@@ -64,8 +65,50 @@ function adminPrompt() {
 }
 
 function buyPrompt() {
+	inquirer.prompt([
+	  {
+		type: 'input',
+	  	message: 'Enter the id of item you would like to purchase',
+	  	name: 'item'
+	  },
+	  {
+	  	type: 'input',
+	  	message: 'Enter quantity you would like to purchase',
+	  	name: 'amount'
+	  }
+	]).then(input => {
+		console.log(input);
+		var id = input.item;
+	  	var userAmount = input.amount;
+	  	con.query("SELECT * FROM products WHERE item_id=?",[id], function(err, data) {
+	  		console.log("\n");
+			if(err) throw err;
 
+			if(data.length !== 0) {
+				var currentStock = data[0].stock_quantity;
+		  	  	var cost = data[0].price;
+		  	  	transaction(id, cost, currentStock, userAmount);	
+			}
+			
+	  	}); 
+	})
 }
+
+function transaction(id, cost, stock, buyAmount) {
+	if(buyAmount < stock) {
+
+		var remainingStock = stock - buyAmount;
+		var total = buyAmount * cost;
+		console.log("\nThe total cost of your transaction was $" + total);
+		console.log("Amount: " + buyAmount);
+		con.query("UPDATE products SET stock_quantity=? WHERE item_id=?", [remainingStock , id], function(err, res) {
+			if(err) throw err;
+			console.log("Your transaction is complete");
+
+			con.end();
+		});
+	}
+};
 
 // Prompts user to input data for item
 // Adds item to sql DB
@@ -114,7 +157,6 @@ function makePrompt(msg) {
 }
 
 inquirer.prompt(prompts).ui.process.subscribe(({ answer }) => {
-  console.log('route');
   if (answer !== '' && i >= 1) {
 
   	if(name === 'bob') {
@@ -130,10 +172,15 @@ inquirer.prompt(prompts).ui.process.subscribe(({ answer }) => {
 	  	  prompts.onNext(adminPrompt());
 	  	  break;
 	  	case 'buy':
-	  	  buyPrompt();
+	  	  viewItems(false, data => {
+	  	  	console.log(data);
+	  	  	buyPrompt();
+	  	  });
 	  	  break;
 	  	case 'view':
-	  	  viewItems();
+	  	  viewItems(true, data => {
+	  	  	console.log(data);
+	  	  });
 	  	  break;
 	  	case 'exit':
 	  	  end();
@@ -141,7 +188,7 @@ inquirer.prompt(prompts).ui.process.subscribe(({ answer }) => {
 	  	  sellerPrompt();
 	  	  break;
 	  	default: 
-		  prompts.onNext(makePrompt('| About | Admin | Buy | Exit | Sell | View | ' + `prompt #${i}\n`));
+		  prompts.onNext(makePrompt('| About | Admin | Buy | Exit | Sell | View | ' + `\n`));
 	  	  break;
 	};
   } else {
