@@ -15,7 +15,7 @@ const con = mysql.createConnection({
 });
 
 let i = 1;
-let name = 'bob';
+let name = 'dude';
 
 con.connect( function(err) {
 	if(err) throw err;
@@ -60,7 +60,7 @@ function adminPrompt() {
 	return {
 		type: 'password',
 		name: 'password',
-		message: 'Enter admin password\n\n'
+		message: 'not working atm...\n\n'
 	};
 }
 
@@ -148,20 +148,38 @@ function sellerPrompt() {
 	});
 }
 
+// Prompt that asks for users name
+function starterPrompt() {
+	return {
+		type: 'input',
+		name: `userInput-${i}`,
+		message: 'What is your name?\n',
+	};
+}
+
+// Prompt that is constantly displayed to user
 function makePrompt(msg) {
   return {
-    type: 'input',
+    type: 'list',
     name: `userInput-${i}`,
     message: `${msg || 'What is your name?'}\n\n`,
+    choices: ['About', 'Admin', 'Buy', 'Exit', 'Sell', 'View'],
   };
 }
 
+// Route system for prompts
 inquirer.prompt(prompts).ui.process.subscribe(({ answer }) => {
-  if (answer !== '' && i >= 1) {
+  if (i >= 1) {
 
-  	if(name === 'bob') {
+  	// On first run through will display input from starterPrompt
+  	if(name === 'dude') {
   		name = answer;
 		console.log('\nWelcome ' + name + '!\nType one of the available options\n');
+	// Converts the selection from list prompt to lowercase to route to  
+	// requested function
+	} else {
+		let temp = answer.toLowerCase();
+		answer = temp;
 	}
 
 	switch( answer ) {
@@ -197,7 +215,9 @@ inquirer.prompt(prompts).ui.process.subscribe(({ answer }) => {
 }, (err) => {
   console.warn(err);
 }, () => {
-  console.log('Interactive session is complete. Good bye! 👋\n');
+  prompts.onNext(makePrompt('| About | Admin | Buy | Exit | Sell | View | ' + `\n`));
 });
 
-prompts.onNext(makePrompt());
+// App starts by sending first prompt to user
+// Calls starterPrompt function which returns prompt object
+prompts.onNext(starterPrompt());
