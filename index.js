@@ -25,12 +25,12 @@ con.connect( function(err) {
 // Displays menu descriptiion
 function aboutDisplay() {
 	console.log("\nI am a basic node & mysql app that connects to Bamazon's database to provide various functions");
-	console.log("Admin - Controls for admin");
+	// console.log("Admin - Controls for admin");
 	console.log("Buy - Purchase items");
 	console.log("Exit - Exit the app");
 	console.log("Sell - Post your own items for sale");
-	console.log("View - Displays all items currently in stock");
-	prompts.onNext(makePrompt('| About | Admin | Buy | Exit | Sell | View | ' + ` `));
+	console.log("View - Displays all items currently in stock\n");
+	prompts.onNext(makePrompt('| About | Buy | Exit | Sell | View | ' + ` `));
 }
 
 // Displays items in stock
@@ -52,7 +52,7 @@ function viewItems(flag, callback) {
 
 		callback(t.toString());
 		console.log('\n');
-		if(flag) prompts.onNext(makePrompt('| About | Admin | Buy | Exit | Sell | View | ' + ` `));
+		if(flag) prompts.onNext(makePrompt('| About | Buy | Exit | Sell | View | ' + ` `));
 	});
 }
 
@@ -77,11 +77,10 @@ function buyPrompt() {
 	  	name: 'amount'
 	  }
 	]).then(input => {
-		console.log(input);
+		// console.log(input);
 		var id = input.item;
 	  	var userAmount = input.amount;
 	  	con.query("SELECT * FROM products WHERE item_id=?",[id], function(err, data) {
-	  		console.log("\n");
 			if(err) throw err;
 
 			if(data.length !== 0) {
@@ -95,17 +94,30 @@ function buyPrompt() {
 }
 
 function transaction(id, cost, stock, buyAmount) {
-	if(buyAmount < stock) {
+	if(buyAmount <= stock) {
 
 		var remainingStock = stock - buyAmount;
 		var total = buyAmount * cost;
 		console.log("\nThe total cost of your transaction was $" + total);
 		console.log("Amount: " + buyAmount);
+
+		if(remainingStock === 0) {
+			con.query("DELETE FROM products WHERE item_id=?", [id], (err, res) => {
+				if(err) throw err;
+				console.log("No more item in database");
+			});
+		}
 		con.query("UPDATE products SET stock_quantity=? WHERE item_id=?", [remainingStock , id], function(err, res) {
 			if(err) throw err;
 			console.log("Your transaction is complete");
 
 			con.end();
+		});
+	} else {
+		console.log("\nNope sorry, not enough in stock to complete transaction\nPlease try again\n");
+		viewItems(false, data => {
+	  	  	console.log(data);
+	  	  	buyPrompt();
 		});
 	}
 };
@@ -163,7 +175,7 @@ function makePrompt(msg) {
     type: 'list',
     name: `userInput-${i}`,
     message: `${msg || 'What is your name?'}\n\n`,
-    choices: ['About', 'Admin', 'Buy', 'Exit', 'Sell', 'View'],
+    choices: ['About', 'Buy', 'Exit', 'Sell', 'View'],
   };
 }
 
@@ -174,7 +186,7 @@ inquirer.prompt(prompts).ui.process.subscribe(({ answer }) => {
   	// On first run through will display input from starterPrompt
   	if(name === 'dude') {
   		name = answer;
-		console.log('\nWelcome ' + name + '!\nType one of the available options\n');
+		console.log('\nWelcome ' + name + '!\nSelect one of the available options\n');
 	// Converts the selection from list prompt to lowercase to route to  
 	// requested function
 	} else {
@@ -186,9 +198,9 @@ inquirer.prompt(prompts).ui.process.subscribe(({ answer }) => {
 		case 'about':
 		  aboutDisplay();
 		  break;
-	  	case 'admin':
-	  	  prompts.onNext(adminPrompt());
-	  	  break;
+	  	// case 'admin':
+	  	//   prompts.onNext(adminPrompt());
+	  	//   break;
 	  	case 'buy':
 	  	  viewItems(false, data => {
 	  	  	console.log(data);
@@ -206,7 +218,7 @@ inquirer.prompt(prompts).ui.process.subscribe(({ answer }) => {
 	  	  sellerPrompt();
 	  	  break;
 	  	default: 
-		  prompts.onNext(makePrompt('| About | Admin | Buy | Exit | Sell | View | ' + `\n`));
+		  prompts.onNext(makePrompt('| About | Buy | Exit | Sell | View | ' + `\n`));
 	  	  break;
 	};
   } else {
@@ -215,7 +227,7 @@ inquirer.prompt(prompts).ui.process.subscribe(({ answer }) => {
 }, (err) => {
   console.warn(err);
 }, () => {
-  prompts.onNext(makePrompt('| About | Admin | Buy | Exit | Sell | View | ' + `\n`));
+  prompts.onNext(makePrompt('| About | Buy | Exit | Sell | View | ' + `\n`));
 });
 
 // App starts by sending first prompt to user
